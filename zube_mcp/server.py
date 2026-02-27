@@ -37,6 +37,11 @@ def _get_client() -> ZubeClient:
     return _client
 
 
+def _compact(**kwargs: Any) -> dict[str, Any]:
+    """Build a dict from kwargs, dropping any None values."""
+    return {k: v for k, v in kwargs.items() if v is not None}
+
+
 def _build_params(
     page: int = 1,
     per_page: int = 30,
@@ -94,7 +99,7 @@ async def list_projects(
     account_id: int | None = None,
 ) -> dict:
     """List all projects. Optionally filter by account_id."""
-    where = {"account_id": account_id} if account_id else None
+    where = {"account_id": account_id} if account_id is not None else None
     return await _get_client().get("/projects", _build_params(page, per_page, where))
 
 
@@ -107,9 +112,7 @@ async def get_project(project_id: int) -> dict:
 @mcp.tool
 async def create_project(account_id: int, name: str, description: str = "") -> dict:
     """Create a new project within an account."""
-    data: dict[str, Any] = {"account_id": account_id, "name": name}
-    if description:
-        data["description"] = description
+    data = {"account_id": account_id, "name": name, **_compact(description=description or None)}
     return await _get_client().post("/projects", data)
 
 
@@ -123,7 +126,7 @@ async def list_workspaces(
     project_id: int | None = None,
 ) -> dict:
     """List all workspaces (Kanban boards). Optionally filter by project_id."""
-    where = {"project_id": project_id} if project_id else None
+    where = {"project_id": project_id} if project_id is not None else None
     return await _get_client().get("/workspaces", _build_params(page, per_page, where))
 
 
@@ -138,9 +141,7 @@ async def create_workspace(
     project_id: int, name: str, description: str = ""
 ) -> dict:
     """Create a new workspace (Kanban board) within a project."""
-    data: dict[str, Any] = {"project_id": project_id, "name": name}
-    if description:
-        data["description"] = description
+    data = {"project_id": project_id, "name": name, **_compact(description=description or None)}
     return await _get_client().post("/workspaces", data)
 
 
@@ -169,13 +170,13 @@ async def list_cards(
     Order by any card field; direction is 'asc' or 'desc'.
     """
     where: dict[str, Any] = {}
-    if project_id:
+    if project_id is not None:
         where["project_id"] = project_id
-    if workspace_id:
+    if workspace_id is not None:
         where["workspace_id"] = workspace_id
-    if sprint_id:
+    if sprint_id is not None:
         where["sprint_id"] = sprint_id
-    if epic_id:
+    if epic_id is not None:
         where["epic_id"] = epic_id
     if number is not None:
         where["number"] = number
@@ -201,8 +202,8 @@ async def get_card(card_id: int) -> dict:
 async def get_card_by_number(number: int, project_id: int | None = None) -> dict:
     """Look up a card by its visible card number (e.g. #15293).
 
-    Optionally scope to a project_id. Returns full card details.
-    Raises if no card with that number is found.
+    Optionally scope to a project_id. Returns full card details including
+    assignees and labels. Returns an error dict if no card is found.
     """
     where: dict[str, Any] = {"number": number}
     if project_id is not None:
@@ -213,7 +214,7 @@ async def get_card_by_number(number: int, project_id: int | None = None) -> dict
     cards = result.get("data", [])
     if not cards:
         return {"error": f"No card found with number {number}"}
-    return await _get_client().get(f"/cards/{cards[0]['id']}")
+    return cards[0]
 
 
 @mcp.tool
@@ -234,25 +235,21 @@ async def create_card(
 
     priority: 1-5 (1=highest). category_name: column name on the workspace board.
     """
-    data: dict[str, Any] = {"project_id": project_id, "title": title}
-    if body:
-        data["body"] = body
-    if workspace_id is not None:
-        data["workspace_id"] = workspace_id
-    if assignee_ids is not None:
-        data["assignee_ids"] = assignee_ids
-    if label_ids is not None:
-        data["label_ids"] = label_ids
-    if epic_id is not None:
-        data["epic_id"] = epic_id
-    if sprint_id is not None:
-        data["sprint_id"] = sprint_id
-    if priority is not None:
-        data["priority"] = priority
-    if points is not None:
-        data["points"] = points
-    if category_name is not None:
-        data["category_name"] = category_name
+    data = {
+        "project_id": project_id,
+        "title": title,
+        **_compact(
+            body=body or None,
+            workspace_id=workspace_id,
+            assignee_ids=assignee_ids,
+            label_ids=label_ids,
+            epic_id=epic_id,
+            sprint_id=sprint_id,
+            priority=priority,
+            points=points,
+            category_name=category_name,
+        ),
+    }
     return await _get_client().post("/cards", data)
 
 
@@ -275,29 +272,19 @@ async def update_card(
 
     state: 'open' or 'closed'. priority: 1-5 or null.
     """
-    data: dict[str, Any] = {}
-    if title is not None:
-        data["title"] = title
-    if body is not None:
-        data["body"] = body
-    if project_id is not None:
-        data["project_id"] = project_id
-    if workspace_id is not None:
-        data["workspace_id"] = workspace_id
-    if assignee_ids is not None:
-        data["assignee_ids"] = assignee_ids
-    if label_ids is not None:
-        data["label_ids"] = label_ids
-    if epic_id is not None:
-        data["epic_id"] = epic_id
-    if sprint_id is not None:
-        data["sprint_id"] = sprint_id
-    if priority is not None:
-        data["priority"] = priority
-    if points is not None:
-        data["points"] = points
-    if state is not None:
-        data["state"] = state
+    data = _compact(
+        title=title,
+        body=body,
+        project_id=project_id,
+        workspace_id=workspace_id,
+        assignee_ids=assignee_ids,
+        label_ids=label_ids,
+        epic_id=epic_id,
+        sprint_id=sprint_id,
+        priority=priority,
+        points=points,
+        state=state,
+    )
     return await _get_client().put(f"/cards/{card_id}", data)
 
 
@@ -422,19 +409,17 @@ async def create_epic(
     track_cards: bool | None = None,
 ) -> dict:
     """Create an epic in a project. color: hex without '#'. due_on: ISO timestamp."""
-    data: dict[str, Any] = {"title": title}
-    if description:
-        data["description"] = description
-    if assignee_id is not None:
-        data["assignee_id"] = assignee_id
-    if color is not None:
-        data["color"] = color
-    if due_on is not None:
-        data["due_on"] = due_on
-    if label_ids is not None:
-        data["label_ids"] = label_ids
-    if track_cards is not None:
-        data["track_cards"] = track_cards
+    data = {
+        "title": title,
+        **_compact(
+            description=description or None,
+            assignee_id=assignee_id,
+            color=color,
+            due_on=due_on,
+            label_ids=label_ids,
+            track_cards=track_cards,
+        ),
+    }
     return await _get_client().post(f"/projects/{project_id}/epics", data)
 
 
@@ -453,25 +438,17 @@ async def update_epic(
     track_cards: bool | None = None,
 ) -> dict:
     """Update an epic. state: open/closed. status: new/queued/in_progress/completed/closed/archived."""
-    data: dict[str, Any] = {}
-    if title is not None:
-        data["title"] = title
-    if description is not None:
-        data["description"] = description
-    if assignee_id is not None:
-        data["assignee_id"] = assignee_id
-    if state is not None:
-        data["state"] = state
-    if status is not None:
-        data["status"] = status
-    if color is not None:
-        data["color"] = color
-    if due_on is not None:
-        data["due_on"] = due_on
-    if label_ids is not None:
-        data["label_ids"] = label_ids
-    if track_cards is not None:
-        data["track_cards"] = track_cards
+    data = _compact(
+        title=title,
+        description=description,
+        assignee_id=assignee_id,
+        state=state,
+        status=status,
+        color=color,
+        due_on=due_on,
+        label_ids=label_ids,
+        track_cards=track_cards,
+    )
     return await _get_client().put(f"/projects/{project_id}/epics/{epic_id}", data)
 
 
@@ -520,13 +497,12 @@ async def create_sprint(
     description: str = "",
 ) -> dict:
     """Create a sprint. Dates are ISO timestamps (e.g. '2026-03-01T00:00:00Z')."""
-    data: dict[str, Any] = {
+    data = {
         "title": title,
         "start_date": start_date,
         "end_date": end_date,
+        **_compact(description=description or None),
     }
-    if description:
-        data["description"] = description
     return await _get_client().post(f"/workspaces/{workspace_id}/sprints", data)
 
 
@@ -541,17 +517,13 @@ async def update_sprint(
     state: str | None = None,
 ) -> dict:
     """Update a sprint. state: 'open' or 'closed'."""
-    data: dict[str, Any] = {}
-    if title is not None:
-        data["title"] = title
-    if start_date is not None:
-        data["start_date"] = start_date
-    if end_date is not None:
-        data["end_date"] = end_date
-    if description is not None:
-        data["description"] = description
-    if state is not None:
-        data["state"] = state
+    data = _compact(
+        title=title,
+        start_date=start_date,
+        end_date=end_date,
+        description=description,
+        state=state,
+    )
     return await _get_client().put(
         f"/workspaces/{workspace_id}/sprints/{sprint_id}", data
     )
@@ -606,23 +578,19 @@ async def create_ticket(
     track_cards: bool | None = None,
 ) -> dict:
     """Create a ticket. type: task/bug/feature/question. priority: 1-4 (1=highest)."""
-    data: dict[str, Any] = {"title": title}
-    if description:
-        data["description"] = description
-    if assignee_id is not None:
-        data["assignee_id"] = assignee_id
-    if priority is not None:
-        data["priority"] = priority
-    if ticket_type is not None:
-        data["type"] = ticket_type
-    if due_on is not None:
-        data["due_on"] = due_on
-    if start_date is not None:
-        data["start_date"] = start_date
-    if customer_id is not None:
-        data["customer_id"] = customer_id
-    if track_cards is not None:
-        data["track_cards"] = track_cards
+    data = {
+        "title": title,
+        **_compact(
+            description=description or None,
+            assignee_id=assignee_id,
+            priority=priority,
+            type=ticket_type,
+            due_on=due_on,
+            start_date=start_date,
+            customer_id=customer_id,
+            track_cards=track_cards,
+        ),
+    }
     return await _get_client().post(f"/projects/{project_id}/tickets", data)
 
 
@@ -643,29 +611,19 @@ async def update_ticket(
     track_cards: bool | None = None,
 ) -> dict:
     """Update a ticket. state: open/closed. status: new/queued/in_progress/completed/closed/archived."""
-    data: dict[str, Any] = {}
-    if title is not None:
-        data["title"] = title
-    if description is not None:
-        data["description"] = description
-    if assignee_id is not None:
-        data["assignee_id"] = assignee_id
-    if priority is not None:
-        data["priority"] = priority
-    if ticket_type is not None:
-        data["type"] = ticket_type
-    if state is not None:
-        data["state"] = state
-    if status is not None:
-        data["status"] = status
-    if due_on is not None:
-        data["due_on"] = due_on
-    if start_date is not None:
-        data["start_date"] = start_date
-    if customer_id is not None:
-        data["customer_id"] = customer_id
-    if track_cards is not None:
-        data["track_cards"] = track_cards
+    data = _compact(
+        title=title,
+        description=description,
+        assignee_id=assignee_id,
+        priority=priority,
+        type=ticket_type,
+        state=state,
+        status=status,
+        due_on=due_on,
+        start_date=start_date,
+        customer_id=customer_id,
+        track_cards=track_cards,
+    )
     return await _get_client().put(
         f"/projects/{project_id}/tickets/{ticket_id}", data
     )
@@ -711,7 +669,7 @@ async def list_project_cards(
         where["state"] = state
     if category_name:
         where["category_name"] = category_name
-    if workspace_id:
+    if workspace_id is not None:
         where["workspace_id"] = workspace_id
     if assignee_ids:
         where["assignee_ids"] = assignee_ids
