@@ -347,6 +347,16 @@ async def delete_card_comment(card_id: int, comment_id: int) -> dict | str:
     return await _get_client().delete(f"/cards/{card_id}/comments/{comment_id}")
 
 
+@mcp.tool
+async def create_card_relation(card_id: int, linked_card_id: int) -> dict:
+    """Create a Related Card link between two cards (Zube "Related cards" feature).
+
+    card_id: the card that will show the link; linked_card_id: the card it is linked to.
+    """
+    data = {"card_id": card_id, "linked_card_id": linked_card_id}
+    return await _get_client().post("/card_relations", data)
+
+
 # ─── Labels ──────────────────────────────────────────────────────────────────
 
 
