@@ -7,7 +7,10 @@ MCP server for the [Zube.io](https://zube.io) project management API. Exposes Zu
 ### Prerequisites
 
 - Python 3.10+
-- [uv](https://docs.astral.sh/uv/getting-started/installation/) (`brew install uv` on macOS)
+- [uv](https://docs.astral.sh/uv/getting-started/installation/):
+  - **macOS**: `brew install uv`
+  - **Windows**: `powershell -ExecutionPolicy ByPass -c "irm https://astral.sh/uv/install.ps1 | iex"` or `winget install astral-sh.uv`
+  - **Any platform**: `pip install uv`
 - SSH access to this GitHub repo
 
 ### 1. Get your Zube API credentials
