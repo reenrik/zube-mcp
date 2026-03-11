@@ -24,7 +24,8 @@ If you edit code but don't bump the version in `pyproject.toml`, Cursor will kee
 
 **Every code change requires:**
 1. Bump `version` in `pyproject.toml` (e.g. `0.2.0` → `0.3.0`)
-2. Toggle the zube MCP server off/on in Cursor Settings → MCP
+2. Commit and push to GitHub
+3. Toggle the zube MCP server off/on in Cursor Settings → MCP
 
 To verify changes locally before restarting:
 ```bash

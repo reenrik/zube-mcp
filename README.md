@@ -4,42 +4,57 @@ MCP server for the [Zube.io](https://zube.io) project management API. Exposes Zu
 
 ## Setup
 
+### Prerequisites
+
+- Python 3.10+
+- [uv](https://docs.astral.sh/uv/getting-started/installation/) (`brew install uv` on macOS)
+- SSH access to this GitHub repo
+
 ### 1. Get your Zube API credentials
 
 1. Go to **Zube.io → Account Settings → API Keys**
 2. Create a new API key — this gives you a **Client ID** and a **private key** file (PEM)
 3. Save the private key somewhere safe (e.g. `~/.zube/private-key.pem`)
 
-### 2. Install
+### 2. Configure in Cursor
 
-```bash
-cd /path/to/zube-mcp
-pip install -e .
-```
-
-Or run directly with `uvx`:
-
-```bash
-uvx --from /path/to/zube-mcp zube-mcp
-```
-
-### 3. Configure in Cursor
-
-Add to your `.cursor/mcp.json` (project-level or global):
+Add to your `.cursor/mcp.json` (project-level or global `~/.cursor/mcp.json`):
 
 ```json
 {
   "mcpServers": {
     "zube": {
       "command": "uvx",
-      "args": ["--from", "/Users/enoch/_CODE/zube-mcp", "zube-mcp"],
+      "args": ["--from", "git+ssh://git@github.com/enochyoung-reach/zube-mcp", "zube-mcp"],
       "env": {
         "ZUBE_CLIENT_ID": "your-client-id-here",
-        "ZUBE_PRIVATE_KEY_PATH": "/Users/enoch/.zube/private-key.pem"
+        "ZUBE_PRIVATE_KEY_PATH": "/path/to/your/private-key.pem"
       }
     }
   }
 }
+```
+
+Replace the `env` values with your own Zube credentials. `uvx` will install the package directly from GitHub — no clone needed.
+
+To pin a specific version, tag a release and append it to the URL:
+```
+git+ssh://git@github.com/enochyoung-reach/zube-mcp@v0.3.0
+```
+
+### Alternative: local install
+
+If you prefer to clone and run locally:
+
+```bash
+git clone git@github.com:enochyoung-reach/zube-mcp.git
+cd zube-mcp
+pip install -e .
+```
+
+Then point the Cursor config at your local path:
+```json
+"args": ["--from", "/path/to/zube-mcp", "zube-mcp"]
 ```
 
 ## Development
@@ -51,16 +66,16 @@ After editing the source code, you **must bump the version** in `pyproject.toml`
 ```bash
 # 1. Edit code in zube_mcp/
 # 2. Bump version in pyproject.toml (e.g. 0.2.0 → 0.3.0)
-# 3. In Cursor: Settings → MCP → toggle zube off, then on
+# 3. Commit and push
+# 4. In Cursor: Settings → MCP → toggle zube off, then on
 ```
 
 To verify your changes locally before restarting Cursor:
 
 ```bash
-uvx --from /Users/enoch/_CODE/zube-mcp python3 -c "
+uvx --from . python3 -c "
 from zube_mcp.server import mcp
 import inspect
-# check a specific function's signature
 from zube_mcp.server import list_cards
 print(inspect.signature(list_cards))
 "
