@@ -285,6 +285,20 @@ async def update_card(
         points=points,
         state=state,
     )
+    # Preserve context fields when not in payload so partial updates (e.g. epic-only) don't clear them.
+    # Zube PUT treats omitted fields as "clear" rather than "leave unchanged".
+    if data:
+        current = await _get_client().get(f"/cards/{card_id}")
+        for key in ("project_id", "workspace_id", "epic_id"):
+            if key not in data and current.get(key) is not None:
+                data[key] = current[key]
+        # Always preserve sprint_id when not explicitly being changed (e.g. epic-only updates must not clear sprint).
+        if "sprint_id" not in data:
+            sid = current.get("sprint_id")
+            if sid is None and current.get("sprint"):
+                sid = current["sprint"].get("id")
+            if sid is not None:
+                data["sprint_id"] = sid
     return await _get_client().put(f"/cards/{card_id}", data)
 
 
