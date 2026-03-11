@@ -25,7 +25,7 @@ Add to your `.cursor/mcp.json` (project-level or global `~/.cursor/mcp.json`):
   "mcpServers": {
     "zube": {
       "command": "uvx",
-      "args": ["--from", "git+ssh://git@github.com/enochyoung-reach/zube-mcp", "zube-mcp"],
+      "args": ["--from", "git+ssh://git@github.com/reachreporting/zube-mcp", "zube-mcp"],
       "env": {
         "ZUBE_CLIENT_ID": "your-client-id-here",
         "ZUBE_PRIVATE_KEY_PATH": "/path/to/your/private-key.pem"
@@ -39,7 +39,7 @@ Replace the `env` values with your own Zube credentials. `uvx` will install the 
 
 To pin a specific version, tag a release and append it to the URL:
 ```
-git+ssh://git@github.com/enochyoung-reach/zube-mcp@v0.3.0
+git+ssh://git@github.com/reachreporting/zube-mcp@v0.3.0
 ```
 
 ### Alternative: local install
@@ -47,7 +47,7 @@ git+ssh://git@github.com/enochyoung-reach/zube-mcp@v0.3.0
 If you prefer to clone and run locally:
 
 ```bash
-git clone git@github.com:enochyoung-reach/zube-mcp.git
+git clone git@github.com:reachreporting/zube-mcp.git
 cd zube-mcp
 pip install -e .
 ```
