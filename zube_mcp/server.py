@@ -116,6 +116,33 @@ async def create_project(account_id: int, name: str, description: str = "") -> d
     return await _get_client().post("/projects", data)
 
 
+@mcp.tool
+async def update_project(
+    project_id: int,
+    name: str | None = None,
+    description: str | None = None,
+    color: str | None = None,
+    auto_add_github_users: bool | None = None,
+    should_use_fibonacci_scale: bool | None = None,
+) -> dict:
+    """Update a project's name, description, or settings.
+
+    color: hex code without '#' (e.g. 'FF5733').
+    Zube requires name on PUT — it is fetched from the current project if not provided.
+    """
+    current = await _get_client().get(f"/projects/{project_id}")
+    data = {
+        "name": name if name is not None else current["name"],
+        **_compact(
+            description=description,
+            color=color,
+            auto_add_github_users=auto_add_github_users,
+            should_use_fibonacci_scale=should_use_fibonacci_scale,
+        ),
+    }
+    return await _get_client().put(f"/projects/{project_id}", data)
+
+
 # ─── Workspaces ──────────────────────────────────────────────────────────────
 
 
